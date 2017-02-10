@@ -21,8 +21,25 @@ signals:
 public slots:
     void processData(float *buffer,
                      unsigned int bufferLength);
+    void toggleColorbar(bool visible);
+    void toggleWaveform(bool visible);
+    void toggleSpectrum(bool visible);
+    void toggleTimeGrid(bool visible);
+    void toggleFreqGrid(bool visible);
+    void toggleLogScaleFreq(bool logscale);
+    void toggleLogScaleAmpl(bool logscale);
+
+    void setMaxFreq(double maxFreq);
+    void setMinFreq(double minFreq);
+    void setMaxAmpl(double maxAmpl);
+    void setMinAmpl(double minAmpl);
+
+    void setLayoutMode(unsigned int layoutMode);
 private:
     void drawGrid(QPainter &painter);
+    void drawSpectrumPlot(QPainter &painter);
+    void drawWaveformPlot(QPainter &painter);
+    void drawColorbarPlot(QPainter &painter);
     void refreshPixmap();
     void renderImage(unsigned int newLines,
                      bool redraw);
@@ -43,6 +60,10 @@ private:
     unsigned int paddingY;
     unsigned int ylabelSpacing;
     unsigned int xlabelSpacing;
+
+    unsigned int colorBarWidth;
+    unsigned int spectrumWidth;
+    unsigned int waveformWidth;
 
     unsigned int plotx, ploty, plotwidth, plotheight;
 
@@ -69,6 +90,8 @@ private:
     bool drawTimeGrid;
     bool drawFreqGrid;
     bool drawColorbar;
+    bool drawSpectrum;
+    bool drawWaveform;
 
     QImage *image;
     QPixmap pixmap;

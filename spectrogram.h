@@ -25,12 +25,16 @@ public:
     double getHeadTime();
 
     std::list<std::vector<float> > spectrogramData;
+    std::list<float> waveEnvelopeMin;
+    std::list<float> waveEnvelopeMax;
     std::list<float> timeList;
     std::vector<float> frequencyList;
 private:
     void removeFoot(unsigned int numLines);
     void addLine(float *fourierData,
-                 unsigned int dataLength);
+                 unsigned int dataLength,
+                 float envmin,
+                 float envmax);
     void FFTCompute(std::complex<float> *data,
                     unsigned int dataLength);
 

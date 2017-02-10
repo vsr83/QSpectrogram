@@ -1,6 +1,7 @@
 #include "spectrogram.h"
 #include <assert.h>
 #include <iostream>
+#include "fftcuda.h"
 
 Spectrogram::Spectrogram(unsigned int _sampleRate,
 			 unsigned int _sampleLength,
@@ -46,8 +47,19 @@ Spectrogram::processData(float *buffer,
 			 unsigned int bufferLength) {
     unsigned int newLines = 0;
 
+    float waveEnvMin = 0, waveEnvMax = 0;
+
     for (unsigned int bufferInd = 0; bufferInd < bufferLength; bufferInd++) {
-        waveRingBuffer[ringBufferInd] = buffer[bufferInd];
+        float value = buffer[bufferInd];
+
+        if (value > waveEnvMax) {
+            waveEnvMax = value;
+        }
+        if (value < waveEnvMin) {
+            waveEnvMin = value;
+        }
+
+        waveRingBuffer[ringBufferInd] = value;
         ringBufferInd = (ringBufferInd + 1) % ringBufferSize;
         sampleCounter++;
 
@@ -61,8 +73,12 @@ Spectrogram::processData(float *buffer,
             //std::cout << "FFT" << std::endl;
 
             // Fill the fftData array with most recent sample data from the ring buffer:
-            std::complex<float> *fftData = new std::complex<float>[fftSize];
             float *fftAbs = new float[fftSize];
+#ifdef CUDA_FFT
+            float *fftData = new float[fftSize];
+#else
+            std::complex<float> *fftData = new std::complex<float>[fftSize];
+#endif
             unsigned int startIndex = (ringBufferInd - fftSize + ringBufferSize) % ringBufferSize;
 
             for (unsigned int indBuffer = 0; indBuffer < fftSize; indBuffer++) {
@@ -70,16 +86,18 @@ Spectrogram::processData(float *buffer,
                 fftData[indBuffer] = waveRingBuffer[sampleIndex];
                 //std::cout << sampleIndex << " " << indBuffer << " " << fftData[indBuffer] << std::endl;
             }
-
+#ifdef CUDA_FFT
+            PerformCUDAFFT(fftData, fftData, fftSize);
+#else
             FFTCompute(fftData, fftSize);
-
+#endif
             // Compute the absolute value of each complex Fouerier coefficient and assemble
             // them into a array:
             for (unsigned int indBuffer = 0; indBuffer < fftSize; indBuffer++) {
                 fftAbs[indBuffer] = std::abs(fftData[indBuffer]) / ((float)fftSize);
             }
             // Store the new line in the spectrogram:
-            addLine(fftAbs, fftSize);
+            addLine(fftAbs, fftSize, waveEnvMin, waveEnvMax);
 
             delete [] fftData;
             delete [] fftAbs;
@@ -96,13 +114,18 @@ Spectrogram::removeFoot(unsigned int numLines) {
         spectrogramData.pop_front();
         timeList.pop_front();
 
+        waveEnvelopeMin.pop_front();;
+        waveEnvelopeMax.pop_front();;
+
         footTime += deltaTime;
     }
 }
 
 void
 Spectrogram::addLine(float *fourierData,
-                    unsigned int dataLength) {
+                     unsigned int dataLength,
+                     float envMin,
+                     float envMax) {
     std::vector<float> fourierDataVec;
 
     if (spectrogramData.size() >= numLines) {
@@ -110,6 +133,8 @@ Spectrogram::addLine(float *fourierData,
     }
     fourierDataVec.assign(fourierData, fourierData + dataLength);
     spectrogramData.push_back(fourierDataVec);
+    waveEnvelopeMax.push_back(envMax);
+    waveEnvelopeMin.push_back(envMin);
 
     headTime += deltaTime;
     timeList.push_back(headTime);

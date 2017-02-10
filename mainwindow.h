@@ -15,6 +15,8 @@ public:
     ~MainWindow();
 
     PulseThread *pulseThread;
+protected:
+    void keyPressEvent(QKeyEvent *event);
 private:
     Spectrogram *spectrogram;
     QSpectrogram *spectrogramWidget;
