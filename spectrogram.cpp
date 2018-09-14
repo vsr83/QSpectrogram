@@ -7,6 +7,7 @@ Spectrogram::Spectrogram(unsigned int _sampleRate,
 			 unsigned int _sampleLength,
 			 unsigned int _samplesPerLine,
 			 unsigned int _numLines) {
+
     sampleRate     = _sampleRate;
     sampleLength   = _sampleLength;
     samplesPerLine = _samplesPerLine;
@@ -16,15 +17,16 @@ Spectrogram::Spectrogram(unsigned int _sampleRate,
 
     waveRingBuffer = new float[ringBufferSize];
     std::fill_n(waveRingBuffer, ringBufferSize, 0.0f);
+    ringBufferInd = 0;
+
+    fftSize = 4096;
 
     headTime  = 0.0f;
     deltaTime = 0.0f;
     deltaTime = ((double)samplesPerLine)/((double)sampleRate);
-    fftSize = 4096;
-
+    frequencyList.clear();
     for (unsigned int indFreq = 0; indFreq < fftSize; indFreq++) {
         float freq = ((float)(indFreq)) * ((float)sampleRate) /((float)fftSize);
-        std::cout << freq << std::endl;
         frequencyList.push_back(freq);
     }
 }
@@ -32,14 +34,6 @@ Spectrogram::Spectrogram(unsigned int _sampleRate,
 Spectrogram::~Spectrogram() {
     delete [] waveRingBuffer;
     waveRingBuffer = 0;
-}
-
-void
-Spectrogram::setSampleParameters(unsigned int _sampleRate,
-				 unsigned int _sampleLength,
-				 unsigned int _samplesPerLine,
-				 bool recompute) {
-
 }
 
 unsigned int
@@ -63,14 +57,10 @@ Spectrogram::processData(float *buffer,
         ringBufferInd = (ringBufferInd + 1) % ringBufferSize;
         sampleCounter++;
 
-        //std::cout << bufferInd << std::endl;
-
         if (sampleCounter == fftSize) {
             sampleCounter -= samplesPerLine;
 
             newLines++;
-
-            //std::cout << "FFT" << std::endl;
 
             // Fill the fftData array with most recent sample data from the ring buffer:
             float *fftAbs = new float[fftSize];
@@ -103,6 +93,7 @@ Spectrogram::processData(float *buffer,
             delete [] fftAbs;
         }
     }
+
     return newLines;
 }
 

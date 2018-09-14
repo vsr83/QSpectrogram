@@ -2,7 +2,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 
-#define RAW_BUFFERSIZE 8192
+#define RAW_BUFFERSIZE 128
 
 PulseThread::PulseThread(const QString &_pulseDevice,
                          unsigned int _sampleRate,
@@ -59,6 +59,7 @@ PulseThread::run() {
         int numRead, error;
 
         numRead = pa_simple_read(paSimple, rawBuffer, RAW_BUFFERSIZE, &error);
+
         if (numRead < 0) {
             qErrnoWarning(error, pa_strerror(error));
             QCoreApplication::quit();
@@ -73,20 +74,14 @@ PulseThread::run() {
                 bufferIndex++;
 
                 if (bufferIndex == bufferSize) {
-                    //qDebug() << "read";
 
-                    for (int ind = 0; ind < bufferSize; ind++) {
+                    for (int unsigned ind = 0; ind < bufferSize; ind++) {
                         copyBufferLeft[ind] = bufferLeft[ind];
                         copyBufferRight[ind] = bufferRight[ind];
                     }
 
                     emit bufferFilled(copyBufferLeft,  bufferSize);
-                    bufferIndex = 0;/*
-                    for (int ind = bufferSize-513; ind >= 0; ind--) {
-                        bufferLeft[ind] = copyBufferLeft[ind + 512];
-                        bufferRight[ind] = copyBufferRight[ind + 512];
-                    }
-                    bufferIndex = bufferSize - 512;*/
+                    bufferIndex = 0;
                 }
             }
         }

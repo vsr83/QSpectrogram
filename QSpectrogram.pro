@@ -13,6 +13,14 @@ TARGET = QSpectrogram
 TEMPLATE = app
 QMAKE_CXXFLAGS += -O3
 
+#CUDA_SOURCES += fftcuda.cu
+#LIBS += -lcudart -lcuda -lcufft
+
+#cuda.input = CUDA_SOURCES
+#cuda.output = fftcuda.o
+#cuda.commands = nvcc -arch=sm_20 -c ../QSpectogram/fftcuda.cu -o fftcuda.o -lcufft
+QMAKE_EXTRA_COMPILERS += cuda
+
 SOURCES += main.cpp\
         mainwindow.cpp \
     spectrogram.cpp \
@@ -22,4 +30,5 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     spectrogram.h \
     qspectrogram.h \
-    pulsethread.h
+    pulsethread.h \
+    fftcuda.h

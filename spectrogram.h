@@ -13,10 +13,6 @@ public:
                unsigned int _numLines);
     ~Spectrogram();
 
-    void setSampleParameters(unsigned int _sampleRate,
-                             unsigned int _sampleLength,
-                             unsigned int _samplesPerLine,
-                             bool recompute = true);
     unsigned int processData(float *buffer,
                              unsigned int bufferLength);
 

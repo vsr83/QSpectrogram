@@ -131,8 +131,6 @@ QSpectrogram::freqToPixel(double freq) {
     double minCoord;
     double imageSize;
 
-    //qDebug("freqToPixel %d", freq );
-
     if (layoutMode == LAYOUT_HORIZONTAL) {
         minCoord  = (double)ploty;
         imageSize = (double)plotheight;
@@ -218,7 +216,7 @@ QSpectrogram::drawGrid(QPainter &painter) {
     double headTime  = spectrogram->getHeadTime();
     double timeWidth = (double)(plotwidth) * deltaTime;
 
-    qDebug("deltaTime %f, headTime %f, timeWidth %f", deltaTime, headTime, timeWidth);
+    //qDebug("deltaTime %f, headTime %f, timeWidth %f", deltaTime, headTime, timeWidth);
 
     QPen thickPen, thinPen, dashPen;
     thinPen.setStyle(Qt::SolidLine);
@@ -337,14 +335,13 @@ QSpectrogram::drawWaveformPlot(QPainter &painter) {
     std::list<float>::iterator itMin = spectrogram->waveEnvelopeMin.end();
     std::list<float>::iterator itMax = spectrogram->waveEnvelopeMax.end();
 
-    int pixel, pixelMin;
+    unsigned int pixel = 0;
+
     if (layoutMode == LAYOUT_HORIZONTAL) {
         pixel= plotx + plotwidth;
-        pixelMin = plotx;
     }
     if (layoutMode == LAYOUT_VERTICAL) {
         pixel= ploty + plotheight;
-        pixelMin = ploty;
     }
     for (;;) {
         if (itMin == spectrogram->waveEnvelopeMin.begin()) break;
@@ -387,21 +384,16 @@ QSpectrogram::drawSpectrumPlot(QPainter &painter) {
 
     float minAmplS = 100.0 * minAmpl;
 
-    qDebug("lineData.size() = %d", lineData.size());
-    int prevpixel, prevvalue;
+    unsigned int prevpixel = 0, prevvalue = 0;
     for (unsigned int ind_freq = 0; ind_freq < lineData.size(); ind_freq++) {
-        int pixel = freqToPixel(spectrogram->frequencyList[ind_freq]);
+        unsigned int pixel = freqToPixel(spectrogram->frequencyList[ind_freq]);
 
         float value = lineData[ind_freq];
         float lvalue = (((float)spectrumWidth) / (log10(maxAmpl) - log10(minAmplS))) * ( log10(value) - log10(minAmplS) );
-        int ivalue = (int) lvalue;
-
-        if (ivalue < 0) ivalue = 0;
+        unsigned int ivalue = std::max((int) lvalue, 0);
 
         if (layoutMode == LAYOUT_HORIZONTAL) {
             if (ind_freq > 0 && pixel >= ploty && prevpixel >= ploty && pixel <= ploty + plotheight && prevpixel <= ploty + plotheight) {
-                //painter.drawLine(plotx + plotwidth + prevvalue + 5, prevpixel,
-                //                 plotx + plotwidth + ivalue + 5, pixel);
                 painter.drawLine(plotx + plotwidth + 5, pixel,
                                  plotx + plotwidth + ivalue + 5, pixel);
             }
@@ -439,6 +431,7 @@ QSpectrogram::renderImage(unsigned int newLines, bool redraw) {
         delete oldimage;
     } else {
         image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
+        image->fill(backgroundColor);
     }
 
     unsigned int ind_line = 0;
@@ -465,7 +458,6 @@ QSpectrogram::renderImage(unsigned int newLines, bool redraw) {
                     int x = plotwidth - spectrogram->spectrogramData.size() + ind_line;                    
 
                     if (y < prevy && y > 0 && x >= 0 && x < (int)plotwidth && prevy < (int)plotheight) {
-                        //qDebug("%d %d", y, prevy);
                         float value = lineData[ind_freq];
                         int r, g, b;
 
@@ -502,7 +494,6 @@ QSpectrogram::renderImage(unsigned int newLines, bool redraw) {
                     int y = plotheight - spectrogram->spectrogramData.size() + ind_line;
 
                     if (x > prevx && x < (int)plotwidth && y >= 0 && y < (int)plotheight && prevx < (int)plotwidth) {
-                        //qDebug("%d %d", y, prevy);
                         float value = lineData[ind_freq];
                         int r, g, b;
 
@@ -547,7 +538,7 @@ QSpectrogram::drawColorbarPlot(QPainter &painter) {
     QPen colorPen;
 
     int startX = plotx + plotwidth + spectrumWidth;
-    for (int y = ploty; y < ploty + plotheight; y++) {
+    for (unsigned int y = ploty; y < ploty + plotheight; y++) {
         float value = 1.0 - ((float)(y-ploty)) / ((float)plotheight);
 
         evalColormap(value, r, g, b);
@@ -578,7 +569,6 @@ QSpectrogram::drawColorbarPlot(QPainter &painter) {
         double dBvalue = 20.0 * logIt;
         if (value >= minAmpl && value <= maxAmpl) {
             int y = ploty + plotheight - (int)((double)plotheight) * ((double)logIt - logMin)/(logMax - logMin);
-            //qDebug("%d %d %f %d", logMinInt, logMaxInt, value, y);
             painter.drawLine(startX + colorBarWidth/2-5, y, startX + colorBarWidth - 5, y);
             painter.drawText(QRect(startX-35, y-6, colorBarWidth, 20), Qt::AlignRight,
                               QString::number((int)dBvalue) + QString(" dB"));
@@ -676,21 +666,18 @@ QSpectrogram::setMinAmpl(double _minAmpl) {
 
 void
 QSpectrogram::setLayoutMode(unsigned int layoutMode) {
-
+    Q_UNUSED(layoutMode);
 }
 
 void
 QSpectrogram::processData(float *buffer, unsigned int bufferLength) {
     unsigned int newLines = spectrogram->processData(buffer, bufferLength);
-
     double minValue = 0.0;
     for (unsigned int indBuffer = 0; indBuffer < bufferLength; indBuffer++) {
         if (fabs(buffer[indBuffer]) > minValue)
             minValue = fabs(buffer[indBuffer]);
     }
 
-    //qDebug("numLines = %d, maxAbs = %f", (int)spectrogram->spectrogramData.size(), minValue);
-    //qDebug("%f %f %f", buffer[0], buffer[1], buffer[2]);
     renderImage(newLines, false);
     refreshPixmap();
 }
